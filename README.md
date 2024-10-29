@@ -4,14 +4,15 @@ This project implements a reinforcement learning environment for limit order exe
 
 ## Description
 
-The LimitOrderEnv simulates a trading scenario where an agent must execute a large order over a specified time horizon. The agent decides on the limit price for each order, balancing between aggressive execution and minimizing market impact.
+The LimitOrderEnv simulates a trading scenario where an agent must sell 1000 shares over a specified time horizon (390 minutes). The agent decides on the limit price for each order, balancing between aggressive execution and minimizing transaction cost.
 
 ## Features
 
 - Custom Gymnasium environment for limit order execution
-- Integration with Stable Baselines3 for easy training and testing of RL algorithms
+- Integration with Stable Baselines3 for training and testing of RL algorithms
 - Configurable parameters such as initial shares, time horizon, and tick size
 - Command-line interface for training and testing modes
+- Command-line interface for various training architectures (PPO, A2C, SAC)
 
 ## Requirements
 - gymnasium

@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium.envs.registration import register
 import os
 import argparse
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, A2C, SAC
 from limit_order import LimitOrderEnv
 from benchmark_costs_script import Benchmark
 import pandas as pd
@@ -12,12 +12,20 @@ register(
     entry_point='limit_order:LimitOrderEnv', 
 )
 
-def train(env, model_dir, log_dir):
+def train(env, model_dir, log_dir, architecture):
     os.makedirs(model_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
 
-    model = PPO('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=log_dir)
-   
+    if architecture == 'PPO':
+        model = PPO('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=log_dir)
+    elif architecture == 'A2C':
+        model = A2C('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=log_dir)
+    elif architecture == 'SAC':
+        model = SAC('MlpPolicy', env, verbose=1, device='cpu', tensorboard_log=log_dir)
+    else:
+        print("Invalid Architecture!")
+        return
+    
     TIMESTEPS = 1000
     iters = 0
     while True:
@@ -25,17 +33,8 @@ def train(env, model_dir, log_dir):
         model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False)
         model.save(f"{model_dir}/{TIMESTEPS*iters}")
 
-def test(env, model_path):
-    model = PPO.load(model_path, env=env)
 
-    obs = env.reset()[0]
-    terminated = False
-    while not terminated:
-        action, _ = model.predict(observation=obs, deterministic=True)
-        obs, _, terminated, _, _ = env.step(action)
-
-
-def backtest_ppo(model_path, data_path, initial_shares, time_horizon):
+def backtest_policy(model_path, architecture, data_path, initial_shares, time_horizon):
     # Load the data
     data = pd.read_csv(data_path)
     
@@ -43,7 +42,15 @@ def backtest_ppo(model_path, data_path, initial_shares, time_horizon):
     env = gym.make('limit-order-v0', csv_path=data_path, initial_shares=initial_shares, time_horizon=time_horizon)
     
     # Load the trained model
-    model = PPO.load(model_path, env=env)
+    if architecture == 'PPO':
+        model = PPO.load(model_path, env=env)
+    elif architecture == 'A2C':
+        model = A2C.load(model_path, env=env)
+    elif architecture == 'SAC':
+        model = SAC.load(model_path, env=env)
+    else:
+        print("Invalid Architecture!")
+        return None, None, None
     
     # Initialize variables for PPO simulation
     obs, _ = env.reset()
@@ -78,6 +85,7 @@ def backtest_ppo(model_path, data_path, initial_shares, time_horizon):
 def main():
     parser = argparse.ArgumentParser(description="Train or test the LimitOrder environment")
     parser.add_argument('--mode', type=str, choices=['train', 'test'], required=True, help='Mode: train or test')
+    parser.add_argument('--architecture', type=str, default='PPO', choices=['SAC', 'A2C', 'PPO'], required=True, help='Mode: train or test')
     parser.add_argument('--model_dir', type=str, default='models', help='Directory to save/load models')
     parser.add_argument('--log_dir', type=str, default='logs', help='Directory for tensorboard logs')
     parser.add_argument('--model_path', type=str, help='Path to the model for testing')
@@ -87,12 +95,11 @@ def main():
     env = gym.make('limit-order-v0')
     
     if args.mode == 'train':
-        train(env, args.model_dir, args.log_dir)
+        train(env, args.model_dir, args.log_dir, args.architecture)
     elif args.mode == 'test':
         if args.model_path is None:
             raise ValueError("Model path must be provided for testing")
-        test(env, args.model_path)
-        backtest_ppo(args.model_path, args.data_path, 1000, 390)
+        backtest_policy(args.model_path, args.architecture, args.data_path, 1000, 390)
 
 if __name__ == "__main__":
     main()
