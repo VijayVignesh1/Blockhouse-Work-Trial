@@ -14,12 +14,8 @@ The LimitOrderEnv simulates a trading scenario where an agent must execute a lar
 - Command-line interface for training and testing modes
 
 ## Requirements
-
-- Python 3.7+
 - gymnasium
 - stable-baselines3
-- pandas
-- numpy
 
 You can install the required packages using:
 
